@@ -1,0 +1,11 @@
+.gradle/
+build/
+run/
+run-data/
+out/
+.idea/
+*.iml
+.eclipse/
+bin/
+src/generated/
+eclipse/
