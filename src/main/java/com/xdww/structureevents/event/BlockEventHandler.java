@@ -1,5 +1,6 @@
 package com.xdww.structureevents.event;
 
+import com.xdww.structureevents.config.BiomeEventDefinition;
 import com.xdww.structureevents.config.BlockEventDefinition;
 import com.xdww.structureevents.config.BlockEventLoader;
 import com.xdww.structureevents.config.ModConfig;
@@ -7,6 +8,8 @@ import com.xdww.structureevents.util.SpawnHelper;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -26,7 +29,7 @@ public class BlockEventHandler {
 
     @SubscribeEvent
     public void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
-        if (event.getLevel().isClientSide || !ModConfig.ENABLED.get() || !ModConfig.SPAWN_MOBS.get()) {
+        if (event.getLevel().isClientSide || !ModConfig.ENABLED.get()) {
             return;
         }
         if (!(event.getEntity() instanceof ServerPlayer player)) {
@@ -41,7 +44,12 @@ public class BlockEventHandler {
             return;
         }
         BlockEventDefinition def = BlockEventLoader.find(blockId.toString());
-        if (def == null || def.chance <= 0 || def.entityId == null || def.count <= 0) {
+        if (def == null) {
+            return;
+        }
+        boolean canSpawn = ModConfig.SPAWN_MOBS.get() && def.chance > 0 && def.entityId != null && !def.entityId.isBlank() && def.count > 0;
+        boolean canEffect = ModConfig.APPLY_EFFECTS.get() && def.effects != null && !def.effects.isEmpty();
+        if (!canSpawn && !canEffect) {
             return;
         }
 
@@ -54,9 +62,28 @@ public class BlockEventHandler {
             return;
         }
         times.put(key, now);
-        if (level.random.nextDouble() > def.chance) {
+        if (canEffect) {
+            for (BiomeEventDefinition.EffectSpec spec : def.effects) {
+                applyEffect(player, spec);
+            }
+        }
+        if (canSpawn && level.random.nextDouble() <= def.chance) {
+            SpawnHelper.spawnAround(level, player, def.entityId, def.count, Math.max(2, def.radius));
+        }
+    }
+
+    private static void applyEffect(ServerPlayer player, BiomeEventDefinition.EffectSpec spec) {
+        if (spec == null || spec.effectId == null || spec.effectId.isBlank() || spec.seconds <= 0) {
             return;
         }
-        SpawnHelper.spawnAround(level, player, def.entityId, def.count, Math.max(2, def.radius));
+        ResourceLocation id = ResourceLocation.tryParse(spec.effectId);
+        if (id == null) {
+            return;
+        }
+        MobEffect effect = ForgeRegistries.MOB_EFFECTS.getValue(id);
+        if (effect == null) {
+            return;
+        }
+        player.addEffect(new MobEffectInstance(effect, spec.seconds * 20, Math.max(0, spec.amplifier), spec.ambient, spec.particles));
     }
 }

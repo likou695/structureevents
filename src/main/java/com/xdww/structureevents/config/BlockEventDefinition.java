@@ -1,5 +1,8 @@
 package com.xdww.structureevents.config;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class BlockEventDefinition {
     public String blockId = "";
     public boolean enabled = true;
@@ -8,4 +11,5 @@ public class BlockEventDefinition {
     public int count = 1;
     public int radius = 6;
     public int cooldownSeconds = 8;
+    public List<BiomeEventDefinition.EffectSpec> effects = new ArrayList<>();
 }

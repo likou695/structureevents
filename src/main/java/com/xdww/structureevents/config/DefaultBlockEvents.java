@@ -17,6 +17,10 @@ public final class DefaultBlockEvents {
         crafting.count = 1;
         crafting.radius = 5;
         crafting.cooldownSeconds = 12;
+        BiomeEventDefinition.EffectSpec poison = new BiomeEventDefinition.EffectSpec();
+        poison.effectId = "minecraft:poison";
+        poison.seconds = 5;
+        crafting.effects.add(poison);
         list.add(crafting);
         return list;
     }
